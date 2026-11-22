@@ -8,7 +8,7 @@ DEFAULT_DB = Path("triage.db")
 
 class TriageStore:
     def __init__(self, db_path: str | Path = DEFAULT_DB):
-        self.conn = sqlite3.connect(str(db_path))
+        self.conn = sqlite3.connect(str(db_path), check_same_thread=False)
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS results "
             "(ticket_id TEXT PRIMARY KEY, result_json TEXT NOT NULL)"
