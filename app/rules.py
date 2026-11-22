@@ -30,6 +30,13 @@ def decide_refund(purchases: list[Purchase], app_opens_since_renewal: int) -> Re
             amount_inr=latest.amount_inr,
             reason="renewal charged and app never opened since renewal",
         )
+    # A failed attempt followed by one success is a retry, not a double charge.
+    if failed and len(renewals) == 1:
+        return RefundDecision(
+        decision="no_refund",
+        amount_inr=0,
+        reason="first attempt failed and retry succeeded; only one charge",
+    )
     return RefundDecision(
         decision="review",
         amount_inr=0,
