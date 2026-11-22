@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Category(str, Enum):
@@ -47,6 +47,7 @@ class ModelOutput(BaseModel):
     severity: Severity
     reply_draft: str = Field(min_length=1)
     confidence: float = Field(ge=0, le=1)
+    model_config = ConfigDict(extra="forbid")
 
 
 class RefundDecision(BaseModel):
