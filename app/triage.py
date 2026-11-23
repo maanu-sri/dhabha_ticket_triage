@@ -2,7 +2,7 @@ import logging
 
 from app.llm import call_model
 from app.rules import decide_refund
-from app.schemas import TicketIn, TriageResult
+from app.schemas import RefundDecision, TicketIn, TriageResult
 from app.store import TriageStore
 from app.validate import get_validated_output
 
@@ -10,6 +10,16 @@ log = logging.getLogger("triage")
 
 FALLBACK_REPLY = "Thanks for writing in. A team member will get back to you shortly."
 CONFIDENCE_FLOOR = 0.6
+
+FRAUD_WORDS = (
+    "fraud", "cyber cell", "never installed", "did not sign up",
+    "didn't sign up", "unauthorised", "unauthorized",
+)
+
+
+def looks_like_fraud(text: str) -> bool:
+    lowered = text.lower()
+    return any(word in lowered for word in FRAUD_WORDS)
 
 
 def run_triage(ticket: TicketIn, store: TriageStore) -> TriageResult:
@@ -22,7 +32,19 @@ def run_triage(ticket: TicketIn, store: TriageStore) -> TriageResult:
     refund = decide_refund(ticket.purchases, ticket.app_opens_since_renewal)
 
     # 3. The model suggests category, severity and reply. It cannot touch refund.
-    model_out = get_validated_output(call_model, f"{ticket.subject}\n{ticket.body}")
+    text = f"{ticket.subject}\n{ticket.body}"
+    model_out = get_validated_output(call_model, text)
+
+    # Fraud claims are never auto-refunded. This can only make a decision more careful.
+    fraud_claim = looks_like_fraud(text) or (
+        model_out is not None and model_out.category == "security_fraud"
+    )
+    if fraud_claim and refund.decision == "refund":
+        refund = RefundDecision(
+            decision="review",
+            amount_inr=0,
+            reason="fraud or unauthorised charge claimed; never auto-refund",
+        )
 
     if model_out is None:
         # 4a. Model failed twice: keep the rules' refund, send to a human.
