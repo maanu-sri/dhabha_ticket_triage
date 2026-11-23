@@ -24,8 +24,6 @@ class TriageStore:
         return TriageResult.model_validate_json(row[0])
 
     def save(self, result: TriageResult) -> None:
-        # INSERT OR IGNORE: the first saved result wins. A later save for the
-        # same ticket does nothing, so the stored answer never changes.
         self.conn.execute(
             "INSERT OR IGNORE INTO results (ticket_id, result_json) VALUES (?, ?)",
             (result.ticket_id, result.model_dump_json()),

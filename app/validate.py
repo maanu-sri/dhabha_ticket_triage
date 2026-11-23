@@ -8,7 +8,6 @@ from app.schemas import ModelOutput
 def parse_model_output(raw: str) -> ModelOutput | None:
     """Return a valid ModelOutput, or None if the text is not usable."""
     text = raw.strip().strip("`").strip()
-    # Some models wrap JSON in a "json" label; remove it.
     if text.startswith("json"):
         text = text[4:].strip()
     try:
